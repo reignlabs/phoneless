@@ -186,7 +186,7 @@ function Wordmark({ light }) {
 
 // ============================================================
 export default function App() {
-  const [view, setView] = useState("landing"); // landing | setup | dashboard | retrieve
+  const [view, setView] = useState("landing"); // landing | setup | dashboard | retrieve | waitlist | terms | privacy
   const [card, setCard] = useState(null); // the saved card
   const [reveal, setReveal] = useState(false);
 
@@ -202,11 +202,15 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
+  // Any time we change to a legal/waitlist view, scroll to top.
+  useEffect(() => { window.scrollTo(0, 0); }, [view]);
+
   return (
     <div style={{ fontFamily: FONT, background: C.bg, color: C.ink, minHeight: "100vh", WebkitFontSmoothing: "antialiased" }}>
+      <DemoBanner />
       <Nav view={view} setView={setView} hasCard={!!card} />
       <div style={{ opacity: reveal ? 1 : 0, transition: "opacity .6s ease" }}>
-        {view === "landing" && <Landing onStart={() => setView("setup")} onRetrieve={() => setView("retrieve")} />}
+        {view === "landing" && <Landing onStart={() => setView("setup")} onRetrieve={() => setView("retrieve")} onWaitlist={() => setView("waitlist")} />}
         {view === "setup" && (
           <Setup
             existing={card}
@@ -221,8 +225,22 @@ export default function App() {
           <Dashboard card={card} onEdit={() => setView("setup")} onTryRetrieve={() => setView("retrieve")} />
         )}
         {view === "retrieve" && <Retrieve card={card} onBack={() => setView(card ? "dashboard" : "landing")} />}
+        {view === "waitlist" && <Waitlist onBack={() => setView("landing")} />}
+        {view === "terms" && <LegalPage kind="terms" onBack={() => setView("landing")} />}
+        {view === "privacy" && <LegalPage kind="privacy" onBack={() => setView("landing")} />}
       </div>
-      <Footer />
+      <Footer setView={setView} />
+    </div>
+  );
+}
+
+// ---------- DEMO BANNER ----------
+// Honest status strip: this is a non-functional prototype. Nothing is stored,
+// nothing is charged. Critical for a safety product so no one relies on it.
+function DemoBanner() {
+  return (
+    <div style={{ background: "#1d1d1f", color: "#fff", fontSize: 13, lineHeight: 1.5, textAlign: "center", padding: "9px 16px", fontWeight: 500 }}>
+      Demo only — nothing you enter is saved and no payment is taken. Do not rely on this in a real emergency.
     </div>
   );
 }
@@ -264,7 +282,7 @@ function Nav({ view, setView, hasCard }) {
 }
 
 // ---------- LANDING ----------
-function Landing({ onStart, onRetrieve }) {
+function Landing({ onStart, onRetrieve, onWaitlist }) {
   return (
     <div>
       {/* Hero */}
@@ -281,10 +299,15 @@ function Landing({ onStart, onRetrieve }) {
           Now your phone remembers everyone, so you don’t have to — until the day you lose it. PhoneLess keeps the few people who matter ready to reach from any borrowed phone, even when yours is gone.
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-          <Btn onClick={onStart}>Set up your card — free</Btn>
+          <Btn onClick={onStart}>Try the demo — free</Btn>
           <Btn kind="ghost" onClick={onRetrieve}>I need my card now ›</Btn>
         </div>
-        <div style={{ fontSize: 13, color: C.sub, marginTop: 18 }}>No app to install. Free forever for your core card.</div>
+        <div style={{ fontSize: 13, color: C.sub, marginTop: 18 }}>
+          No app to install.{" "}
+          <span style={{ color: C.accent, cursor: "pointer", fontWeight: 500 }} onClick={onWaitlist}>
+            Reserve your spot for launch ›
+          </span>
+        </div>
       </section>
 
       {/* The insight strip */}
@@ -974,15 +997,278 @@ function Retrieve({ card, onBack }) {
 }
 
 // ---------- FOOTER ----------
-function Footer() {
+function Footer({ setView }) {
+  const link = { cursor: "pointer", color: C.sub, textDecoration: "none" };
   return (
     <div style={{ borderTop: `1px solid ${C.hair}`, background: "#fff" }}>
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "34px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-        <Wordmark />
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: "34px 24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <Wordmark />
+          <div style={{ display: "flex", gap: 18, marginTop: 14, fontSize: 13 }}>
+            <span style={link} onClick={() => setView("terms")}>Terms</span>
+            <span style={link} onClick={() => setView("privacy")}>Privacy</span>
+            <span style={link} onClick={() => setView("waitlist")}>Reserve your spot</span>
+          </div>
+        </div>
         <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, maxWidth: 560 }}>
-          PhoneLess is a secondary informational utility. It does not provide medical treatment, rescue coordination, or guaranteed real-time communication. Keep only low-sensitivity information on your card.
+          PhoneLess is a secondary informational utility. It does not provide medical treatment, rescue coordination, or guaranteed real-time communication. Keep only low-sensitivity information on your card. This site is a demonstration prototype; it does not store data or process payments.
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------- WAITLIST ----------
+// No-payment interest capture. Collects an email in-memory only — this demo
+// does NOT transmit or store it anywhere. Wiring a real list (e.g. an email
+// service or a simple form backend) is a launch step; until then this just
+// validates the flow and messaging without taking on data-storage liability.
+function Waitlist({ onBack }) {
+  const [email, setEmail] = useState("");
+  const [segment, setSegment] = useState("");
+  const [done, setDone] = useState(false);
+  const valid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+
+  return (
+    <section style={{ maxWidth: 560, margin: "0 auto", padding: "70px 24px 90px" }}>
+      <div style={{ textAlign: "center", marginBottom: 30 }}>
+        <h1 className="cc-section-h2" style={{ fontWeight: 600, letterSpacing: "-0.03em", margin: "0 0 12px" }}>
+          Reserve your spot
+        </h1>
+        <p style={{ fontSize: 17, lineHeight: 1.55, color: C.sub, margin: 0 }}>
+          PhoneLess isn’t live yet. Leave your email and we’ll let you know when the real card —
+          and the physical backup — is ready. No payment now, and you’re never charged for joining the list.
+        </p>
+      </div>
+
+      {!done ? (
+        <div style={{ background: "#fff", border: `1px solid ${C.hair}`, borderRadius: 20, padding: "28px 26px" }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.ink, display: "block", marginBottom: 7 }}>Email</label>
+          <TextInput value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" inputMode="email" />
+
+          <label style={{ fontSize: 13, fontWeight: 600, color: C.ink, display: "block", margin: "18px 0 7px" }}>
+            What describes you? <span style={{ color: C.sub, fontWeight: 400 }}>(optional)</span>
+          </label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {["Just me", "For a parent / family", "Outdoors / travel", "An organization"].map((s) => (
+              <span
+                key={s}
+                onClick={() => setSegment(s === segment ? "" : s)}
+                style={{
+                  cursor: "pointer", fontSize: 13.5, padding: "8px 13px", borderRadius: 980,
+                  border: `1px solid ${segment === s ? C.accent : C.hair}`,
+                  color: segment === s ? C.accent : C.sub,
+                  background: segment === s ? "#f0f7ff" : "#fff", fontWeight: 500,
+                }}
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 22 }}>
+            <Btn onClick={() => valid && setDone(true)} disabled={!valid}>Join the list</Btn>
+          </div>
+          <div style={{ fontSize: 12, color: C.sub, marginTop: 14, lineHeight: 1.5 }}>
+            Demo note: this prototype does not send or save your email anywhere. By joining at launch you’ll
+            agree to our Terms and Privacy Policy. We’ll only email you about PhoneLess.
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: "#fff", border: `1px solid ${C.hair}`, borderRadius: 20, padding: "34px 26px", textAlign: "center" }}>
+          <div style={{ width: 46, height: 46, borderRadius: 46, background: "#eaf7ef", color: C.ok, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 14 }}>✓</div>
+          <div style={{ fontSize: 19, fontWeight: 600, marginBottom: 8 }}>You’re on the list (in this demo)</div>
+          <div style={{ fontSize: 14.5, color: C.sub, lineHeight: 1.55 }}>
+            In the live version this is where we’d confirm your spot. Nothing was actually saved or sent — this is a prototype.
+          </div>
+        </div>
+      )}
+
+      <div style={{ textAlign: "center", marginTop: 22 }}>
+        <Btn kind="ghost" onClick={onBack}>‹ Back</Btn>
+      </div>
+    </section>
+  );
+}
+
+// ---------- LEGAL PAGES ----------
+// DEMO-GRADE templates. These are a reasonable starting point for a
+// demonstration site and a draft to hand to an attorney — they are NOT a
+// substitute for legal review. Bracketed [PLACEHOLDERS] must be filled in,
+// and the flagged sections (auto-renew, liability, special-category data)
+// MUST be reviewed by counsel before any payment is ever taken.
+function LegalPage({ kind, onBack }) {
+  const updated = "[INSERT DATE]";
+  return (
+    <section style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px 90px" }}>
+      <div style={{ background: "#fff7e6", border: "1px solid #f0d99a", color: "#7a5c00", borderRadius: 12, padding: "12px 16px", fontSize: 13, lineHeight: 1.5, marginBottom: 28 }}>
+        <strong>Template — not yet legal advice.</strong> This page is a demonstration draft. Before PhoneLess
+        accepts any payment or stores real user data, this text must be completed and reviewed by a qualified attorney.
+      </div>
+
+      <h1 style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.03em", margin: "0 0 6px" }}>
+        {kind === "terms" ? "Terms of Service" : "Privacy Policy"}
+      </h1>
+      <div style={{ fontSize: 13, color: C.sub, marginBottom: 28 }}>Last updated: {updated}</div>
+
+      {kind === "terms" ? <TermsBody /> : <PrivacyBody />}
+
+      <div style={{ marginTop: 30 }}>
+        <Btn kind="ghost" onClick={onBack}>‹ Back</Btn>
+      </div>
+    </section>
+  );
+}
+
+function LegalH({ children }) {
+  return <h2 style={{ fontSize: 18, fontWeight: 600, margin: "26px 0 8px", color: C.ink }}>{children}</h2>;
+}
+function LegalP({ children }) {
+  return <p style={{ fontSize: 14.5, lineHeight: 1.6, color: "#3a3a3c", margin: "0 0 12px" }}>{children}</p>;
+}
+function LegalFlag({ children }) {
+  return (
+    <p style={{ fontSize: 13, lineHeight: 1.55, color: "#7a5c00", background: "#fff7e6", border: "1px solid #f0d99a", borderRadius: 10, padding: "10px 13px", margin: "0 0 12px" }}>
+      <strong>⚑ Attorney review required: </strong>{children}
+    </p>
+  );
+}
+
+function TermsBody() {
+  return (
+    <div>
+      <LegalP>
+        These Terms govern your use of PhoneLess, operated by [LEGAL ENTITY NAME] (“we,” “us”). By using the
+        service you agree to these Terms. If you do not agree, do not use the service.
+      </LegalP>
+
+      <LegalH>1. What PhoneLess is — and is not</LegalH>
+      <LegalP>
+        PhoneLess is a secondary, informational convenience that lets you store a small amount of low-sensitivity
+        contact information and retrieve it later. It is <strong>not</strong> an emergency, medical, rescue, or
+        life-safety service. It does not contact anyone on your behalf, summon help, provide medical advice, or
+        guarantee that your information will be available at any given moment. Never rely on PhoneLess as your only
+        means of reaching anyone in an emergency.
+      </LegalP>
+
+      <LegalH>2. Eligibility</LegalH>
+      <LegalP>
+        You must be at least 18 years old to create a card. The service is not directed to children, and accounts
+        for minors are not supported at this time.
+      </LegalP>
+
+      <LegalH>3. Your information and consent to display it</LegalH>
+      <LegalP>
+        You choose what to put on your card and explicitly accept that it can be displayed to anyone who enters your
+        identifier and PIN. Store only information you are comfortable exposing under that condition. Do not store
+        sensitive personal data, financial details, passwords, or government identifiers.
+      </LegalP>
+      <LegalP>
+        If you include any contact other than yourself, you confirm you have a reasonable basis to list them as an
+        emergency contact.
+      </LegalP>
+
+      <LegalH>4. Acceptable use</LegalH>
+      <LegalP>
+        You may not use PhoneLess to look up, track, harass, or contact anyone without authorization, or for any
+        unlawful purpose. We may suspend access for misuse.
+      </LegalP>
+
+      <LegalH>5. Paid features and auto-renewal</LegalH>
+      <LegalFlag>
+        The exact auto-renewal disclosures, consent mechanics, renewal-reminder emails, and cancellation path must
+        be drafted to comply with US ROSCA and state automatic-renewal laws (e.g. California) for every market you
+        sell in. Do not enable billing until this section is finalized by counsel.
+      </LegalFlag>
+      <LegalP>
+        Paid tiers, where offered, will be billed on a recurring basis at the price and cadence disclosed to you at
+        checkout, with affirmative consent obtained before the first charge and a clear way to cancel. [FINAL TERMS
+        TO BE INSERTED.]
+      </LegalP>
+
+      <LegalH>6. Physical card orders</LegalH>
+      <LegalFlag>
+        If you pre-sell or take payment for a physical card before shipping, your shipping timeframes and refund
+        obligations are governed by the FTC Mail Order Rule and similar laws. Disclose realistic ship times and a
+        refund path.
+      </LegalFlag>
+
+      <LegalH>7. No warranty</LegalH>
+      <LegalP>
+        The service is provided “as is” and “as available,” without warranties of any kind to the fullest extent
+        permitted by law, including no warranty that it will be uninterrupted, available, or error-free.
+      </LegalP>
+
+      <LegalH>8. Limitation of liability</LegalH>
+      <LegalFlag>
+        Limitation-of-liability and indemnity language for a service people may associate with safety must be
+        drafted carefully; courts may not enforce broad waivers, especially for gross negligence or where consumer
+        law applies. This is the single most important section to have reviewed.
+      </LegalFlag>
+      <LegalP>
+        To the fullest extent permitted by law, we are not liable for indirect, incidental, or consequential damages,
+        or for any harm arising from reliance on the service, unavailability of the service, or unauthorized access
+        to information you chose to store. [SCOPE AND CAPS TO BE SET BY COUNSEL.]
+      </LegalP>
+
+      <LegalH>9. Changes; governing law; contact</LegalH>
+      <LegalP>
+        We may update these Terms; continued use means acceptance. These Terms are governed by the laws of
+        [STATE/COUNTRY]. Questions: [CONTACT EMAIL].
+      </LegalP>
+    </div>
+  );
+}
+
+function PrivacyBody() {
+  return (
+    <div>
+      <LegalP>
+        This Policy explains how PhoneLess, operated by [LEGAL ENTITY NAME], handles information. This demonstration
+        site does not collect, store, or transmit any information you enter.
+      </LegalP>
+
+      <LegalH>1. Information we would handle (at launch)</LegalH>
+      <LegalP>
+        Your account email; the card contents you choose to store (contact names and numbers, an optional short
+        note); and, for paid orders, a shipping address handled separately from card contents. Payment card details
+        would be handled by our payment processor — we would not store full card numbers.
+      </LegalP>
+
+      <LegalH>2. Contacts you add about other people</LegalH>
+      <LegalP>
+        Emergency-contact details may be personal data about someone other than you. We process it only to provide
+        the service, and that person may have rights to access or delete it.
+      </LegalP>
+
+      <LegalH>3. Medical or other special-category information</LegalH>
+      <LegalFlag>
+        Any health/medical flag is special-category data under GDPR Art. 9 and similar laws, requiring separate,
+        explicit, logged opt-in consent. Keep medical flags off by default and confirm the consent flow with counsel.
+      </LegalFlag>
+
+      <LegalH>4. How information would be used</LegalH>
+      <LegalP>
+        Only to operate the service: to store your card, allow retrieval with your identifier and PIN, notify you of
+        lookups, process orders, and provide support. We would not sell your information.
+      </LegalP>
+
+      <LegalH>5. Retrieval, security, and your choices</LegalH>
+      <LegalP>
+        Retrieval is protected by rate-limiting, lockout, and owner notification. You would be able to edit or delete
+        your card and close your account at any time. We would honor applicable access and deletion rights.
+      </LegalP>
+      <LegalFlag>
+        Data-breach exposure is a primary risk for this product (the “stalker breaches a card” scenario). Encryption
+        at rest and in transit, data minimization, and an incident-response/notification plan must be in place before
+        storing real data.
+      </LegalFlag>
+
+      <LegalH>6. International users; changes; contact</LegalH>
+      <LegalP>
+        GDPR/CCPA and other laws may apply depending on where you live; [DETAILS TO BE COMPLETED]. We may update this
+        Policy. Questions or requests: [CONTACT EMAIL].
+      </LegalP>
     </div>
   );
 }
