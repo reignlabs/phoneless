@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 
 // ============================================================
-// CloudCard — Active-Recall Web Card Prototype
+// PhoneLess — Active-Recall Web Card Prototype
 // Apple-grade refined minimalism. Single-file React.
 // In-memory state only (production: Postgres + server-side
 // lockout/rate-limit/notification — noted in-app where relevant).
@@ -140,10 +140,14 @@ function TextInput(props) {
   );
 }
 
-// CloudCard mark — a cloud whose body is a contact card
+// PhoneLess mark — a phone frame drawn as four corner brackets (the "less":
+// the phone isn't fully there) with the user's person glyph held solid inside.
+// Reads as both a phone outline and "your person remains"; brackets double
+// as a scan/find frame.
 function Mark({ size = 26, gradient = true, color = C.ink }) {
-  const gid = "ccg" + size;
-  const fill = gradient ? `url(#${gid})` : color;
+  const gid = "plg" + size;
+  const stroke = gradient ? `url(#${gid})` : color;
+  const glyph = gradient ? `url(#${gid})` : color;
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden>
       {gradient && (
@@ -154,14 +158,16 @@ function Mark({ size = 26, gradient = true, color = C.ink }) {
           </linearGradient>
         </defs>
       )}
-      <path
-        d="M13 27c0-2.6 0-4.4 2.6-4.6a7.2 7.2 0 0113.2-2.2 6.1 6.1 0 019.9 1.9c2.9.1 8.3-.6 8.3 4.9v16.5a4.2 4.2 0 01-4.2 4.2H17.2A4.2 4.2 0 0113 44.5V27z"
-        fill={fill}
-      />
-      <circle cx="25.5" cy="33.5" r="3.8" fill="#fff" />
-      <path d="M19.5 43c0-3.2 2.7-4.8 6-4.8s6 1.6 6 4.8z" fill="#fff" />
-      <rect x="36" y="31" width="10.5" height="2.8" rx="1.4" fill="#fff" />
-      <rect x="36" y="36.5" width="8" height="2.8" rx="1.4" fill="#fff" opacity="0.62" />
+      {/* four corner brackets — phone frame, incomplete */}
+      <g stroke={stroke} strokeWidth="4.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 12H16a4 4 0 00-4 4v6" />
+        <path d="M42 12h6a4 4 0 014 4v6" />
+        <path d="M22 52H16a4 4 0 01-4-4v-6" />
+        <path d="M42 52h6a4 4 0 004-4v-6" />
+      </g>
+      {/* person glyph held solid inside */}
+      <circle cx="32" cy="28" r="6.2" fill={glyph} />
+      <path d="M21.5 45c0-5.8 4.7-9 10.5-9s10.5 3.2 10.5 9z" fill={glyph} />
     </svg>
   );
 }
@@ -170,8 +176,9 @@ function Wordmark({ light }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
       <Mark size={24} gradient />
-      <span style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.03em", color: light ? "#fff" : C.ink }}>
-        CloudCard
+      <span style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.03em" }}>
+        <span style={{ color: light ? "#fff" : C.ink }}>Phone</span>
+        <span style={{ color: C.accent }}>Less</span>
       </span>
     </div>
   );
@@ -271,7 +278,7 @@ function Landing({ onStart, onRetrieve }) {
           {" "}their number by heart.
         </h1>
         <p style={{ fontSize: 21, lineHeight: 1.5, color: C.sub, maxWidth: 560, margin: "0 auto 36px", fontWeight: 400 }}>
-          Now your phone remembers everyone, so you don’t have to — until the day you lose it. CloudCard keeps the few people who matter ready to reach from any borrowed phone, even when yours is gone.
+          Now your phone remembers everyone, so you don’t have to — until the day you lose it. PhoneLess keeps the few people who matter ready to reach from any borrowed phone, even when yours is gone.
         </p>
         <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
           <Btn onClick={onStart}>Set up your card — free</Btn>
@@ -310,7 +317,7 @@ function Landing({ onStart, onRetrieve }) {
           <div className="cc-grid-3">
             <Step n="1" title="Add your people" body="Two or three names and numbers — the people you’d want reached in an emergency." />
             <Step n="2" title="Pick a number you’ll remember" body="Your phone number plus a private PIN, like an ATM card. That’s how you open it later." />
-            <Step n="3" title="Open it anywhere" body="Stranded with no phone? Borrow one, go to CloudCard, enter your number and PIN. Your card appears." />
+            <Step n="3" title="Open it anywhere" body="Stranded with no phone? Borrow one, go to PhoneLess, enter your number and PIN. Your card appears." />
           </div>
         </div>
       </section>
@@ -973,7 +980,7 @@ function Footer() {
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "34px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
         <Wordmark />
         <div style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.6, maxWidth: 560 }}>
-          CloudCard is a secondary informational utility. It does not provide medical treatment, rescue coordination, or guaranteed real-time communication. Keep only low-sensitivity information on your card.
+          PhoneLess is a secondary informational utility. It does not provide medical treatment, rescue coordination, or guaranteed real-time communication. Keep only low-sensitivity information on your card.
         </div>
       </div>
     </div>
